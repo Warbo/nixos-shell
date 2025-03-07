@@ -48,15 +48,17 @@ var cmd = &Cmd{}
 
 // Cmd encapsulates the command and it's options.
 type Cmd struct {
-	Config  string   `short:"C" long:"config" description:"path to configuration.nix" default:"./configuration.nix"`
-	Bind    string   `short:"b" long:"bind" description:"path on host to bind to /src in the container" default:"./"`
-	Command string   `short:"c" long:"command" description:"shell commands to execute"`
-	Id      string   `long:"name" description:"name to use for the container" default:"random"`
-	Verbose bool     `short:"v" description:"show verbose logging"`
-	Timeout int      `short:"t" description:"timeout in seconds to wait for container boot" default:"90"`
-	Ports   []string `short:"p" long:"port" description:"expose a container port to the host. example '8080:80' allows access to container port 80 via host port 8080"`
-	sigint  chan bool
-	netenv map[string]string
+	Config   string   `short:"C" long:"config" description:"path to configuration.nix" default:"./configuration.nix"`
+	Bind     string   `short:"b" long:"bind" description:"path on host to bind to /src in the container" default:"./"`
+	Command  string   `short:"c" long:"command" description:"shell commands to execute"`
+	ConfDir  string   `long:"confdir" description:"path to container configurations" default:"/etc/containers"`
+	StateDir string   `long:"statedir" description:"path to container states" default:"/var/lib/containers"`
+	Id       string   `long:"name" description:"name to use for the container" default:"random"`
+	Verbose  bool     `short:"v" description:"show verbose logging"`
+	Timeout  int      `short:"t" description:"timeout in seconds to wait for container boot" default:"90"`
+	Ports    []string `short:"p" long:"port" description:"expose a container port to the host. example '8080:80' allows access to container port 80 via host port 8080"`
+	sigint   chan bool
+	netenv   map[string]string
 }
 
 // logging
@@ -186,7 +188,7 @@ func (cmd *Cmd) keygen() (private string, public string, err error) {
 		err = fmt.Errorf("could not find 'ssh-keygen' command.")
 		return
 	}
-	home := path.Join("/var/lib/containers", cmd.Id, "var")
+	home := path.Join(cmd.StateDir, cmd.Id, "var")
 	if err = os.MkdirAll(home, 0755); err != nil {
 		err = fmt.Errorf("failed to create home dir in container: %s", err)
 		return
@@ -223,7 +225,7 @@ func (cmd *Cmd) ssh(args ...string) error {
 }
 
 func (cmd *Cmd) getNetworkEnv() (env map[string]string, err error) {
-	b, err := ioutil.ReadFile(path.Join("/etc/containers", fmt.Sprintf("%s.conf", cmd.Id)))
+	b, err := ioutil.ReadFile(path.Join(cmd.ConfDir, fmt.Sprintf("%s.conf", cmd.Id)))
 	if err != nil {
 		return nil, fmt.Errorf("could not find generated network info: %s", err)
 	}
@@ -444,7 +446,7 @@ func (cmd *Cmd) Execute() error {
 		}
 	}
 	// Create the container root
-	root := path.Join("/var/lib/containers", cmd.Id)
+	root := path.Join(cmd.StateDir, cmd.Id)
 	cmd.debug("creating", root)
 	if err := os.MkdirAll(root, 0755); err != nil {
 		return err

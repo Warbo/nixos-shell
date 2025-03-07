@@ -80,5 +80,11 @@ a temporary environment. That is, it sets up your environment, gets you
 logged in, then takes care of tearing it up and tidying up after you when 
 you log out.
 
-
-
+####Why do I get "no such file or directory"?
+You may need to change the confdir and statedir options, which are the paths
+to nixos-container configurations and container states, respectively. These vary
+between systems, due to
+[this pull request](https://github.com/NixOS/nixpkgs/pull/87268). Our defaults
+are `/etc/containers` and `/var/lib/containers` for backwards compatibility; but
+newer systems may need to set these to `/etc/nixos-containers` and
+`/var/lib/nixos-containers` instead.
